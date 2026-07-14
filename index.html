@@ -1,26 +1,48 @@
 <!DOCTYPE html>
 <html>
 <head>
+
 <meta charset="UTF-8">
-<title>Particle Test</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>AI Hand Particle</title>
 
 <style>
 body{
 margin:0;
-background:black;
 overflow:hidden;
+background:#000;
 }
+
+video{
+position:fixed;
+right:10px;
+bottom:10px;
+width:140px;
+border-radius:15px;
+opacity:.35;
+}
+
 </style>
 
 </head>
 
+
 <body>
+
+
+<video id="video" autoplay playsinline></video>
+
 
 <script type="module">
 
-import * as THREE from 
+
+import * as THREE from
 "https://cdn.jsdelivr.net/npm/three@0.160/build/three.module.js";
 
+
+
+// 场景
 
 const scene=new THREE.Scene();
 
@@ -36,50 +58,78 @@ innerWidth/innerHeight,
 camera.position.z=5;
 
 
-const renderer=new THREE.WebGLRenderer();
+
+const renderer=
+new THREE.WebGLRenderer({
+antialias:true
+});
+
 
 renderer.setSize(
 innerWidth,
 innerHeight
 );
 
-document.body.appendChild(renderer.domElement);
+
+document.body.appendChild(
+renderer.domElement
+);
 
 
 
-const geo=new THREE.BufferGeometry();
+
+// 粒子
+
+const count=8000;
+
+
+const geo=
+new THREE.BufferGeometry();
+
 
 let arr=[];
 
 
-for(let i=0;i<5000;i++){
+for(let i=0;i<count;i++){
+
+let r=2*Math.random();
 
 arr.push(
-(Math.random()-0.5)*4,
-(Math.random()-0.5)*4,
-(Math.random()-0.5)*4
+
+(Math.random()-.5)*r*2,
+
+(Math.random()-.5)*r*2,
+
+(Math.random()-.5)*r*2
+
 );
 
 }
 
 
+
 geo.setAttribute(
 "position",
-new THREE.Float32BufferAttribute(arr,3)
+new THREE.Float32BufferAttribute(
+arr,3
+)
 );
 
 
 
-const mat=new THREE.PointsMaterial({
+const mat=
+new THREE.PointsMaterial({
 
 color:0x00ffff,
 
-size:0.04
+size:0.035
 
 });
 
 
-const points=new THREE.Points(
+
+const points=
+new THREE.Points(
 geo,
 mat
 );
@@ -89,24 +139,232 @@ scene.add(points);
 
 
 
-function loop(){
 
-requestAnimationFrame(loop);
 
-points.rotation.y+=0.005;
+// 摄像头
+
+const video=
+document.getElementById("video");
+
+
+navigator.mediaDevices.getUserMedia({
+
+video:{
+facingMode:"user"
+}
+
+})
+.then(stream=>{
+
+video.srcObject=stream;
+
+})
+.catch(e=>{
+
+alert("摄像头打开失败:"+e);
+
+});
+
+
+
+
+// 简单手势追踪
+
+let targetX=0;
+let targetY=0;
+
+
+
+video.addEventListener(
+"play",
+()=>{
+
+
+const canvas=
+document.createElement("canvas");
+
+
+const ctx=
+canvas.getContext("2d");
+
+
+
+function scan(){
+
+
+canvas.width=
+video.videoWidth;
+
+
+canvas.height=
+video.videoHeight;
+
+
+
+if(canvas.width){
+
+
+ctx.drawImage(
+video,
+0,
+0
+);
+
+
+
+let data=
+ctx.getImageData(
+0,
+0,
+canvas.width,
+canvas.height
+).data;
+
+
+
+let x=0;
+let y=0;
+let n=0;
+
+
+
+for(
+let i=0;
+i<data.length;
+i+=40
+){
+
+
+let r=data[i];
+let g=data[i+1];
+let b=data[i+2];
+
+
+
+if(r>150&&g>100&&b>80){
+
+x+=(i/4)%canvas.width;
+
+y+=Math.floor((i/4)/canvas.width);
+
+n++;
+
+}
+
+
+}
+
+
+
+if(n){
+
+x/=n;
+y/=n;
+
+
+targetX=
+(x/canvas.width-.5)*4;
+
+
+targetY=
+-(y/canvas.height-.5)*4;
+
+
+}
+
+
+
+}
+
+
+requestAnimationFrame(scan);
+
+
+}
+
+
+
+scan();
+
+
+});
+
+
+
+
+
+
+// 动画
+
+function animate(){
+
+
+requestAnimationFrame(animate);
+
+
+
+const p=
+geo.attributes.position.array;
+
+
+
+for(let i=0;i<count;i++){
+
+
+p[i*3]+=(
+targetX-p[i*3]
+)*0.002;
+
+
+p[i*3+1]+=(
+targetY-p[i*3+1]
+)*0.002;
+
+
+}
+
+
+
+geo.attributes.position.needsUpdate=true;
+
+
+
+points.rotation.y+=0.003;
+
+
 
 renderer.render(
 scene,
 camera
 );
 
+
 }
 
 
-loop();
+animate();
+
+
+
+
+window.onresize=()=>{
+
+camera.aspect=
+innerWidth/innerHeight;
+
+camera.updateProjectionMatrix();
+
+
+renderer.setSize(
+innerWidth,
+innerHeight
+);
+
+};
 
 
 </script>
+
 
 </body>
 </html>
