@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Particle Test</title>
+
+<style>
+body{
+margin:0;
+background:black;
+overflow:hidden;
+}
+</style>
+
+</head>
+
+<body>
+
+<script type="module">
+
+import * as THREE from 
+"https://cdn.jsdelivr.net/npm/three@0.160/build/three.module.js";
+
+
+const scene=new THREE.Scene();
+
+
+const camera=new THREE.PerspectiveCamera(
+60,
+innerWidth/innerHeight,
+0.1,
+100
+);
+
+
+camera.position.z=5;
+
+
+const renderer=new THREE.WebGLRenderer();
+
+renderer.setSize(
+innerWidth,
+innerHeight
+);
+
+document.body.appendChild(renderer.domElement);
+
+
+
+const geo=new THREE.BufferGeometry();
+
+let arr=[];
+
+
+for(let i=0;i<5000;i++){
+
+arr.push(
+(Math.random()-0.5)*4,
+(Math.random()-0.5)*4,
+(Math.random()-0.5)*4
+);
+
+}
+
+
+geo.setAttribute(
+"position",
+new THREE.Float32BufferAttribute(arr,3)
+);
+
+
+
+const mat=new THREE.PointsMaterial({
+
+color:0x00ffff,
+
+size:0.04
+
+});
+
+
+const points=new THREE.Points(
+geo,
+mat
+);
+
+
+scene.add(points);
+
+
+
+function loop(){
+
+requestAnimationFrame(loop);
+
+points.rotation.y+=0.005;
+
+renderer.render(
+scene,
+camera
+);
+
+}
+
+
+loop();
+
+
+</script>
+
+</body>
+</html>
