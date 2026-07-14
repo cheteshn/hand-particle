@@ -39,7 +39,14 @@ opacity:.35;
 
 import * as THREE from
 "https://cdn.jsdelivr.net/npm/three@0.160/build/three.module.js";
+import {Hands}
+from
+"https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js";
 
+
+import {Camera}
+from
+"https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js";
 
 
 // 场景
@@ -88,7 +95,15 @@ new THREE.BufferGeometry();
 
 
 let arr=[];
+// 手势控制变量
 
+let handOpen = false;
+
+let pinch = false;
+
+let handX = 0;
+
+let handY = 0;
 
 for(let i=0;i<count;i++){
 
@@ -145,7 +160,87 @@ scene.add(points);
 
 const video=
 document.getElementById("video");
+const hands = new Hands({
 
+locateFile:(file)=>{
+
+return "https://cdn.jsdelivr.net/npm/@mediapipe/hands/"+file;
+
+}
+
+});
+
+
+hands.setOptions({
+
+maxNumHands:1,
+
+modelComplexity:0,
+
+minDetectionConfidence:0.7,
+
+minTrackingConfidence:0.7
+
+});
+
+
+hands.onResults((result)=>{
+
+
+if(result.multiHandLandmarks){
+
+
+let hand=result.multiHandLandmarks[0];
+
+
+// 手掌位置
+
+handX=(hand[9].x-0.5)*4;
+
+handY=-(hand[9].y-0.5)*4;
+
+
+
+// 判断手指张开数量
+
+let open=0;
+
+
+[8,12,16,20].forEach(i=>{
+
+if(hand[i].y < hand[i-2].y){
+
+open++;
+
+}
+
+});
+
+
+
+handOpen = open >= 3;
+
+
+
+// 判断拇指和食指距离
+
+let distance=Math.hypot(
+
+hand[4].x-hand[8].x,
+
+hand[4].y-hand[8].y
+
+);
+
+
+
+pinch = distance < 0.05;
+
+
+
+}
+
+});
 
 navigator.mediaDevices.getUserMedia({
 
@@ -157,6 +252,21 @@ facingMode:"user"
 .then(stream=>{
 
 video.srcObject=stream;
+  const cam = new Camera(
+video,
+{
+onFrame: async ()=>{
+await hands.send({
+image: video
+});
+},
+
+width:640,
+height:480
+}
+);
+
+cam.start();
 
 })
 .catch(e=>{
@@ -300,7 +410,24 @@ function animate(){
 
 
 requestAnimationFrame(animate);
+// 手势控制粒子
 
+if(handOpen){
+
+points.scale.x += 0.01;
+points.scale.y += 0.01;
+points.scale.z += 0.01;
+
+}
+
+
+if(pinch){
+
+points.scale.x -= 0.01;
+points.scale.y -= 0.01;
+points.scale.z -= 0.01;
+
+}
 
 
 const p=
